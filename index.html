@@ -112,7 +112,7 @@ const state = {
   positions: [],
   quizzes: {},        // { MBTI:{id}, BOSI:{id} }
   questions: { MBTI:[], BOSI:[] },
-  form: { full_name:"", phone:"", position_id:"" },
+  form: { full_name:"", phone:"", pos:"", position_id:"" },
   ans: {},            // question_id -> 1..5
   result: { MBTI:null, BOSI:null },  // ผลที่ได้กลับจาก submit_quiz
   busy: false,
@@ -181,11 +181,25 @@ function renderInfo(){
     <input id="f_name" value="${esc(state.form.full_name)}" placeholder="เช่น ณัฐพล ใจดี">
     <label>เบอร์โทร</label>
     <input id="f_phone" value="${esc(state.form.phone)}" placeholder="08x-xxx-xxxx">
+    <label>ตำแหน่งที่สมัคร</label>
+    <input id="f_pos" list="dl-pos" value="${esc(state.form.pos||'')}" placeholder="เลือกหรือพิมพ์ตำแหน่ง" autocomplete="off">
+    <datalist id="dl-pos">
+      <option value="CS ประสานงาน"><option value="CS Facebook"><option value="Support Facebook">
+      <option value="การตลาด Facebook"><option value="การตลาดออนไลน์"><option value="KOL Specialist">
+      <option value="Branding"><option value="Live"><option value="Content Creator">
+      <option value="Graphic Design"><option value="Sale Wholesale ขายส่ง"><option value="Add-order">
+      <option value="Telesale"><option value="Sale Admin"><option value="Purchasing จัดซื้อต่างประเทศ">
+      <option value="Purchasing จัดซื้อในประเทศ"><option value="Accountant"><option value="Internal Auditor">
+      <option value="Human Resources"><option value="IT Support"><option value="หัวหน้าฝ่ายบุคคล">
+      <option value="หัวหน้าการตลาด"><option value="หัวหน้าบัญชี"><option value="หัวหน้าคลังสินค้า">
+      <option value="ช่างเคลม"><option value="เลขา">
+    </datalist>
     <div id="err"></div>
     <div class="nav"><button class="btn primary" id="next">เริ่มทำแบบทดสอบ</button></div>`;
   document.getElementById("next").onclick = () => {
     state.form.full_name = document.getElementById("f_name").value.trim();
     state.form.phone = document.getElementById("f_phone").value.trim();
+    state.form.pos = document.getElementById("f_pos").value.trim();
     if(!state.form.full_name){
       document.getElementById("err").innerHTML = `<div class="msg err">กรุณากรอกชื่อ-นามสกุล</div>`;
       return;
@@ -243,7 +257,7 @@ async function submitAll(){
     // 1) บันทึกผู้ทำแบบทดสอบลงตารางแยกของระบบข้อสอบ (ไม่ยุ่งกับพอร์ทัลรับสมัคร)
     let r = await sb.from("quiz_respondents").insert({
       id: respondentId, name: state.form.full_name,
-      pos: null, phone: state.form.phone || "",
+      pos: state.form.pos || null, phone: state.form.phone || "",
     });
     if(r.error) throw r.error;
 
