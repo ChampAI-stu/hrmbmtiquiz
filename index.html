@@ -58,6 +58,25 @@
   .center{text-align:center}
   .spin{display:inline-block;width:18px;height:18px;border:3px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-3px;margin-right:6px}
   @keyframes sp{to{transform:rotate(360deg)}}
+  /* ===== ผลลัพธ์ผู้สมัคร ===== */
+  .rsect{border-top:1px solid var(--line);padding-top:18px;margin-top:18px}
+  .rst{font-weight:700;color:var(--green-dark);font-size:16px;display:flex;align-items:center;gap:8px}
+  .rst .rtype{background:var(--green);color:#fff;font-size:14px;padding:2px 12px;border-radius:8px}
+  .rarche{color:var(--muted);font-size:14px;margin:4px 0 14px}
+  .rgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:center}
+  .chartbox{max-width:300px;margin:0 auto;width:100%}
+  .dim{display:grid;grid-template-columns:20px 1fr 20px 92px;align-items:center;gap:8px;margin-bottom:10px;font-size:13px}
+  .dim b{font-weight:700;text-align:center}
+  .dimbar{height:9px;background:var(--green-line);border-radius:99px;overflow:hidden}
+  .dimbar>i{display:block;height:100%;background:var(--green)}
+  .dim .pct{color:var(--muted);font-size:12px;text-align:right}
+  .bosibar{display:grid;grid-template-columns:150px 1fr 44px;align-items:center;gap:10px;margin-bottom:12px;font-size:14px}
+  .bosibar .lab{font-weight:600}
+  .bosibar .track{height:12px;background:#e8f1ec;border-radius:99px;overflow:hidden}
+  .bosibar .track>i{display:block;height:100%;border-radius:99px}
+  .bosibar .v{font-weight:700;text-align:right;font-size:13px}
+  .rnote{background:#f5faf7;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--muted);margin-top:18px}
+  @media(max-width:600px){.rgrid{grid-template-columns:1fr}.bosibar{grid-template-columns:120px 1fr 40px}}
   .logo-plate{display:inline-flex;background:linear-gradient(135deg,#0e5b45,#16785d);border-radius:14px;padding:12px 22px}
   .logo-plate img{height:30px}
 
@@ -74,6 +93,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script>
 // ========= ตั้งค่า: ใส่ค่าจาก Supabase > Project Settings > API =========
 const SUPABASE_URL = "https://kxgqfwljzqjxperyxnfn.supabase.co";
@@ -94,8 +114,25 @@ const state = {
   questions: { MBTI:[], BOSI:[] },
   form: { full_name:"", phone:"", position_id:"" },
   ans: {},            // question_id -> 1..5
+  result: { MBTI:null, BOSI:null },  // ผลที่ได้กลับจาก submit_quiz
   busy: false,
 };
+
+const MBTI_TYPES = {
+  INTJ:["นักวางแผน","Architect"], INTP:["นักคิด","Logician"],
+  ENTJ:["ผู้บัญชาการ","Commander"], ENTP:["นักโต้วาที","Debater"],
+  INFJ:["ผู้สนับสนุน","Advocate"], INFP:["ผู้ไกล่เกลี่ย","Mediator"],
+  ENFJ:["ผู้นำ","Protagonist"], ENFP:["นักรณรงค์","Campaigner"],
+  ISTJ:["นักปฏิบัติ","Logistician"], ISFJ:["ผู้พิทักษ์","Defender"],
+  ESTJ:["ผู้บริหาร","Executive"], ESFJ:["ผู้ให้","Consul"],
+  ISTP:["นักแก้ปัญหา","Virtuoso"], ISFP:["นักผจญภัย","Adventurer"],
+  ESTP:["ผู้ประกอบการ","Entrepreneur"], ESFP:["ผู้สร้างความบันเทิง","Entertainer"],
+};
+const BOSI = {
+  B:["Builder — นักสร้าง","#C00000"], O:["Opportunist — นักโอกาส","#BA7517"],
+  S:["Specialist — ผู้เชี่ยวชาญ","#16785d"], I:["Innovator — นักคิดค้น","#2E75B6"],
+};
+const DIMS = [["E","I"],["S","N"],["T","F"],["J","P"]];
 
 let PAGES = [];
 const PER_PAGE = 8;
@@ -240,17 +277,66 @@ async function submitQuiz(type, respondentId){
 
   const rpc = await sb.rpc("submit_quiz", { p_session_id: sessionId });
   if(rpc.error) throw rpc.error;
+  if(rpc.data) state.result[type] = { type: rpc.data.result_type, scores: rpc.data.scores };
 }
 
 function renderDone(){
   setProg(1);
+  const m = state.result.MBTI, b = state.result.BOSI;
+  const arche = m && MBTI_TYPES[m.type] ? MBTI_TYPES[m.type] : null;
+
+  const dimBars = m ? DIMS.map(([l,r])=>{
+    const lv = m.scores[l]??0, rv = m.scores[r]??0;
+    return `<div class="dim"><b>${l}</b>
+      <div class="dimbar"><i style="width:${lv}%"></i></div>
+      <b>${r}</b><span class="pct">${lv}% / ${rv}%</span></div>`;
+  }).join("") : "";
+
+  const bosiBars = b ? ["B","O","S","I"].map(k=>{
+    const v = b.scores[k]??0, meta = BOSI[k];
+    return `<div class="bosibar"><span class="lab" style="color:${meta[1]}">${esc(meta[0])}</span>
+      <div class="track"><i style="width:${v}%;background:${meta[1]}"></i></div>
+      <span class="v">${v}%</span></div>`;
+  }).join("") : "";
+
   app.innerHTML = `
-    <div class="done">
+    <div class="done" style="padding-bottom:8px">
       <div class="ic">✓</div>
       <div class="accent"></div>
-      <h2>ส่งแบบทดสอบเรียบร้อย!</h2>
-      <p class="hint" style="margin-top:6px">ขอบคุณ ${esc(state.form.full_name)} ระบบบันทึกผลแบบทดสอบของคุณแล้ว<br>ทีมงานจะติดต่อกลับหากผ่านการพิจารณา</p>
-    </div>`;
+      <h2>ทำแบบทดสอบเสร็จแล้ว!</h2>
+      <p class="hint" style="margin-top:6px">ขอบคุณ ${esc(state.form.full_name)} — นี่คือผลบุคลิกภาพของคุณ</p>
+    </div>
+    ${m?`
+    <div class="rsect">
+      <div class="rst">MBTI <span class="rtype">${esc(m.type)}</span></div>
+      <div class="rarche">${arche?esc(arche[0])+" ("+esc(arche[1])+")":""}</div>
+      <div class="rgrid">
+        <div class="chartbox"><canvas id="radar"></canvas></div>
+        <div>${dimBars}</div>
+      </div>
+    </div>`:""}
+    ${b?`
+    <div class="rsect">
+      <div class="rst">BOSI DNA <span class="rtype">${esc(b.type)} — เด่นสุด</span></div>
+      <div class="rarche">สัดส่วนทั้ง 4 ด้านของคุณ</div>
+      ${bosiBars}
+    </div>`:""}
+    <div class="rnote">ผลนี้เป็นเครื่องมือช่วยทำความเข้าใจสไตล์การทำงานของคุณ ไม่มีคำตอบถูก/ผิด และไม่ใช่เกณฑ์ตัดสินผ่าน/ไม่ผ่าน — ทีมงานจะติดต่อกลับหากผ่านการพิจารณา</div>`;
+
+  if(m && window.Chart){
+    new Chart(document.getElementById("radar"), {
+      type:"radar",
+      data:{ labels:["E","S","T","J"],
+        datasets:[{ data:[m.scores.E??0,m.scores.S??0,m.scores.T??0,m.scores.J??0],
+          fill:true, backgroundColor:"rgba(22,120,93,.15)", borderColor:"#16785d",
+          pointBackgroundColor:"#16785d", borderWidth:2 }]},
+      options:{ plugins:{legend:{display:false}},
+        scales:{ r:{ min:0,max:100, ticks:{display:false,stepSize:25},
+          grid:{color:"#c6e6d7"}, angleLines:{color:"#c6e6d7"},
+          pointLabels:{font:{size:14,weight:"600",family:"'IBM Plex Sans Thai'"},color:"#0e5b45"} } },
+        responsive:true }
+    });
+  }
 }
 
 boot();
