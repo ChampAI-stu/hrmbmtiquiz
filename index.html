@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>สมัครงาน MASARU | แบบทดสอบผู้สมัคร</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#1F3864; --blue:#2E75B6; --gold:#C9A84C;
+    --bg:#F4F6FB; --card:#FFFFFF; --line:#E2E6EF;
+    --text:#1F2A44; --muted:#6B7280; --ok:#1E7145; --err:#C00000;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+  .wrap{max-width:720px;margin:0 auto;padding:24px 16px 64px}
+  header{text-align:center;margin-bottom:20px}
+  .logo{display:inline-flex;align-items:center;gap:10px;font-weight:700;color:var(--navy);font-size:22px}
+  .logo .b{background:var(--navy);color:#fff;width:34px;height:34px;border-radius:8px;display:grid;place-items:center;font-size:16px}
+  .sub{color:var(--muted);font-size:15px;margin-top:4px}
+  .bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin:18px 0}
+  .bar>i{display:block;height:100%;background:var(--blue);width:0;transition:width .3s}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:24px;box-shadow:0 1px 3px rgba(31,56,100,.06)}
+  h2{color:var(--navy);font-size:20px;margin-bottom:4px}
+  .hint{color:var(--muted);font-size:14px;margin-bottom:18px}
+  label{display:block;font-weight:600;font-size:14px;margin:14px 0 6px}
+  input,select{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:15px;background:#fff}
+  input:focus,select:focus{outline:none;border-color:var(--blue)}
+  .q{border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+  .q .qt{font-weight:600;margin-bottom:12px}
+  .opt{display:block;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:.15s;font-size:15px}
+  .opt:hover{border-color:var(--blue);background:#F0F6FC}
+  .opt.sel{border-color:var(--navy);background:#EAF0FA;font-weight:600}
+  .likert{display:flex;gap:6px;justify-content:space-between;margin-top:6px}
+  .likert button{flex:1;padding:12px 0;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer;font-family:inherit;font-size:15px;font-weight:600;color:var(--muted)}
+  .likert button.sel{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .likert-lab{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:4px}
+  .file{border:2px dashed var(--line);border-radius:12px;padding:24px;text-align:center;cursor:pointer;color:var(--muted)}
+  .file.has{border-color:var(--ok);color:var(--ok);border-style:solid}
+  .nav{display:flex;gap:10px;margin-top:20px}
+  .btn{flex:1;padding:14px;border:none;border-radius:10px;font-family:inherit;font-size:16px;font-weight:600;cursor:pointer}
+  .btn.primary{background:var(--navy);color:#fff}
+  .btn.primary:disabled{background:#9aa6bf;cursor:not-allowed}
+  .btn.ghost{background:#fff;border:1px solid var(--line);color:var(--navy)}
+  .msg{padding:12px 14px;border-radius:10px;font-size:14px;margin-top:12px}
+  .msg.err{background:#FCEBEB;color:var(--err)}
+  .done{text-align:center;padding:20px 0}
+  .done .ic{width:64px;height:64px;border-radius:50%;background:#E9F5EF;color:var(--ok);display:grid;place-items:center;font-size:34px;margin:0 auto 16px}
+  .accent{height:4px;background:var(--gold);border-radius:99px;width:56px;margin:0 auto 16px}
+  .center{text-align:center}
+  .spin{display:inline-block;width:18px;height:18px;border:3px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-3px;margin-right:6px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo"><span class="b">M</span> MASARU</div>
+    <div class="sub">แบบประเมินผู้สมัคร — MBTI &amp; BOSI</div>
+    <div class="bar"><i id="prog"></i></div>
+  </header>
+  <div id="app" class="card"><div class="center" style="color:var(--muted)">กำลังโหลด...</div></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ========= ตั้งค่า: ใส่ค่าจาก Supabase > Project Settings > API =========
+const SUPABASE_URL = "https://kxgqfwljzqjxperyxnfn.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_vh-qLGPFmlSZ0VWxQIG3CA_CMHDAZKv";
+// =====================================================================
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const app = document.getElementById("app");
+const prog = document.getElementById("prog");
+const uid = () => (crypto.randomUUID ? crypto.randomUUID()
+  : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{const r=Math.random()*16|0;return (c==="x"?r:(r&0x3|0x8)).toString(16);}));
+const todayTh = () => new Date().toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'});
+
+const state = {
+  step: 0,
+  positions: [],
+  quizzes: {},        // { MBTI:{id}, BOSI:{id} }
+  questions: { MBTI:[], BOSI:[] },
+  form: { full_name:"", phone:"", position_id:"" },
+  ans: {},            // question_id -> 1..5
+  busy: false,
+};
+
+let PAGES = [];
+const PER_PAGE = 8;
+function buildPages(){
+  const all = [...state.questions.MBTI, ...state.questions.BOSI];
+  PAGES = [];
+  for(let i=0;i<all.length;i+=PER_PAGE) PAGES.push(all.slice(i,i+PER_PAGE));
+}
+
+async function boot(){
+  try{
+    const {data:qz,error:e2} = await sb.from("quizzes").select("id,type").eq("is_active",true);
+    if(e2) throw e2;
+    (qz||[]).forEach(q => state.quizzes[q.type] = q);
+
+    const ids = (qz||[]).map(q=>q.id);
+    const {data:qs,error:e3} = await sb.from("questions")
+      .select("id,quiz_id,order_no,text,dimension,options")
+      .in("quiz_id", ids).order("order_no");
+    if(e3) throw e3;
+    for(const q of (qs||[])){
+      const type = state.quizzes.MBTI && q.quiz_id===state.quizzes.MBTI.id ? "MBTI" : "BOSI";
+      state.questions[type].push(q);
+    }
+    buildPages();
+    render();
+  }catch(err){
+    app.innerHTML = `<div class="msg err">โหลดข้อมูลไม่สำเร็จ: ${esc(err.message||err)}<br>ตรวจ SUPABASE_URL / ANON_KEY แล้วรีเฟรช</div>`;
+  }
+}
+
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function setProg(f){ prog.style.width = Math.round(f*100) + "%"; }
+
+function render(){
+  if(state.step===0){ setProg(0); return renderInfo(); }
+  if(state.step>=1 && state.step<=PAGES.length){ setProg(state.step/(PAGES.length+1)); return renderPage(state.step-1); }
+  setProg(1); return renderDone();
+}
+
+function renderInfo(){
+  app.innerHTML = `
+    <h2>ข้อมูลผู้สมัคร</h2>
+    <p class="hint">กรอกข้อมูลเบื้องต้นก่อนเริ่มทำแบบทดสอบ</p>
+    <label>ชื่อ-นามสกุล *</label>
+    <input id="f_name" value="${esc(state.form.full_name)}" placeholder="เช่น ณัฐพล ใจดี">
+    <label>เบอร์โทร</label>
+    <input id="f_phone" value="${esc(state.form.phone)}" placeholder="08x-xxx-xxxx">
+    <div id="err"></div>
+    <div class="nav"><button class="btn primary" id="next">เริ่มทำแบบทดสอบ</button></div>`;
+  document.getElementById("next").onclick = () => {
+    state.form.full_name = document.getElementById("f_name").value.trim();
+    state.form.phone = document.getElementById("f_phone").value.trim();
+    if(!state.form.full_name){
+      document.getElementById("err").innerHTML = `<div class="msg err">กรุณากรอกชื่อ-นามสกุล</div>`;
+      return;
+    }
+    state.step = 1; render();
+  };
+}
+
+function renderPage(idx){
+  const qs = PAGES[idx];
+  const last = idx === PAGES.length - 1;
+  const body = qs.map((q,i)=>{
+    const num = idx*PER_PAGE + i + 1;
+    const cur = state.ans[q.id];
+    const btns = [1,2,3,4,5].map(v=>{
+      const sel = cur===v ? "sel":"";
+      return `<button class="${sel}" data-q="${q.id}" data-v="${v}">${v}</button>`;
+    }).join("");
+    return `<div class="q"><div class="qt">${num}. ${esc(q.text)}</div>
+      <div class="likert">${btns}</div>
+      <div class="likert-lab"><span>ไม่เห็นด้วยอย่างยิ่ง</span><span>เห็นด้วยอย่างยิ่ง</span></div></div>`;
+  }).join("");
+  app.innerHTML = `
+    <h2>แบบประเมินบุคลิกภาพ</h2>
+    <p class="hint">หน้า ${idx+1} / ${PAGES.length} — เลือก 1–5 ตามความเป็นตัวคุณมากที่สุด</p>
+    ${body}<div id="err"></div>
+    <div class="nav">
+      <button class="btn ghost" id="back">ย้อนกลับ</button>
+      <button class="btn primary" id="next">${last?"ส่งแบบทดสอบ":"ต่อไป"}</button>
+    </div>`;
+  app.querySelectorAll(".likert button").forEach(el=>el.onclick=()=>{
+    state.ans[el.dataset.q] = Number(el.dataset.v);
+    el.parentElement.querySelectorAll("button").forEach(x=>x.classList.remove("sel"));
+    el.classList.add("sel");
+  });
+  document.getElementById("back").onclick = () => { state.step--; render(); window.scrollTo(0,0); };
+  document.getElementById("next").onclick = () => {
+    if(qs.some(q => !state.ans[q.id])){
+      document.getElementById("err").innerHTML = `<div class="msg err">กรุณาตอบให้ครบทุกข้อในหน้านี้</div>`;
+      return;
+    }
+    if(last){ submitAll(); }
+    else { state.step++; render(); window.scrollTo(0,0); }
+  };
+}
+
+async function submitAll(){
+  if(state.busy) return;
+  state.busy = true;
+  const btn = document.getElementById("next");
+  btn.disabled = true; btn.innerHTML = `<span class="spin"></span>กำลังส่ง...`;
+  try{
+    const respondentId = uid();
+
+    // 1) บันทึกผู้ทำแบบทดสอบลงตารางแยกของระบบข้อสอบ (ไม่ยุ่งกับพอร์ทัลรับสมัคร)
+    let r = await sb.from("quiz_respondents").insert({
+      id: respondentId, name: state.form.full_name,
+      pos: null, phone: state.form.phone || "",
+    });
+    if(r.error) throw r.error;
+
+    // 2) MBTI + BOSI: session + answers + คำนวณผลอัตโนมัติ (คำตอบทั้งหมดเก็บใน state.ans)
+    await submitQuiz("MBTI", respondentId);
+    await submitQuiz("BOSI", respondentId);
+
+    state.step = PAGES.length + 1; render(); window.scrollTo(0,0);
+  }catch(err){
+    document.getElementById("err").innerHTML = `<div class="msg err">ส่งไม่สำเร็จ: ${esc(err.message||err)}</div>`;
+    btn.disabled = false; btn.textContent = "ส่งแบบทดสอบ";
+  }finally{
+    state.busy = false;
+  }
+}
+
+async function submitQuiz(type, respondentId){
+  const sessionId = uid();
+  const quiz = state.quizzes[type];
+  let r = await sb.from("quiz_sessions").insert({
+    id: sessionId, respondent_id: respondentId, quiz_id: quiz.id,
+  });
+  if(r.error) throw r.error;
+
+  const rows = state.questions[type].map(q => ({
+    id: uid(), session_id: sessionId, question_id: q.id,
+    choice: null, value: state.ans[q.id] ?? null,
+  }));
+  r = await sb.from("answers").insert(rows);
+  if(r.error) throw r.error;
+
+  const rpc = await sb.rpc("submit_quiz", { p_session_id: sessionId });
+  if(rpc.error) throw rpc.error;
+}
+
+function renderDone(){
+  setProg(1);
+  app.innerHTML = `
+    <div class="done">
+      <div class="ic">✓</div>
+      <div class="accent"></div>
+      <h2>ส่งแบบทดสอบเรียบร้อย!</h2>
+      <p class="hint" style="margin-top:6px">ขอบคุณ ${esc(state.form.full_name)} ระบบบันทึกผลแบบทดสอบของคุณแล้ว<br>ทีมงานจะติดต่อกลับหากผ่านการพิจารณา</p>
+    </div>`;
+}
+
+boot();
+</script>
+</body>
+</html>
