@@ -5,49 +5,55 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>สมัครงาน MASARU | แบบทดสอบผู้สมัคร</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --navy:#1F3864; --blue:#2E75B6; --gold:#C9A84C;
-    --bg:#F4F6FB; --card:#FFFFFF; --line:#E2E6EF;
-    --text:#1F2A44; --muted:#6B7280; --ok:#1E7145; --err:#C00000;
-    --radius:14px;
+    --green:#16785d; --green-dark:#0e5b45; --green-soft:#e2f3ec; --green-line:#c6e6d7;
+    --gold:#C9A84C; --navy:#0e5b45; --blue:#16785d;
+    --bg:#f1f5f2; --card:#ffffff; --line:#e3e9e4;
+    --text:#16241f; --muted:#6b756f; --ok:#16785d; --err:#b23a48;
+    --radius:16px;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+  body{font-family:'IBM Plex Sans Thai',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased}
   .wrap{max-width:720px;margin:0 auto;padding:24px 16px 64px}
   header{text-align:center;margin-bottom:20px}
-  .logo{display:inline-flex;align-items:center;gap:10px;font-weight:700;color:var(--navy);font-size:22px}
-  .logo .b{background:var(--navy);color:#fff;width:34px;height:34px;border-radius:8px;display:grid;place-items:center;font-size:16px}
+  .logo{display:inline-flex;align-items:center;gap:10px;font-weight:700;color:var(--green-dark);font-size:22px}
+  .logo .b{background:linear-gradient(135deg,#0e5b45,#16785d);color:#fff;width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-size:16px}
   .sub{color:var(--muted);font-size:15px;margin-top:4px}
-  .bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin:18px 0}
-  .bar>i{display:block;height:100%;background:var(--blue);width:0;transition:width .3s}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:24px;box-shadow:0 1px 3px rgba(31,56,100,.06)}
-  h2{color:var(--navy);font-size:20px;margin-bottom:4px}
+  .bar{height:8px;background:var(--green-line);border-radius:99px;overflow:hidden;margin:18px 0}
+  .bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--green),var(--gold));width:0;transition:width .3s}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:24px;box-shadow:0 1px 2px rgba(16,60,45,.05),0 8px 28px rgba(16,60,45,.06);border-top:4px solid var(--green)}
+  h2{color:var(--green-dark);font-size:20px;margin-bottom:4px}
   .hint{color:var(--muted);font-size:14px;margin-bottom:18px}
   label{display:block;font-weight:600;font-size:14px;margin:14px 0 6px}
-  input,select{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:15px;background:#fff}
-  input:focus,select:focus{outline:none;border-color:var(--blue)}
+  input,select{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:15px;background:#fbfdfc;transition:.15s}
+  input:focus,select:focus{outline:none;border-color:var(--green);background:#fff;box-shadow:0 0 0 3px var(--green-soft)}
   .q{border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
   .q .qt{font-weight:600;margin-bottom:12px}
   .opt{display:block;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:.15s;font-size:15px}
-  .opt:hover{border-color:var(--blue);background:#F0F6FC}
-  .opt.sel{border-color:var(--navy);background:#EAF0FA;font-weight:600}
+  .opt:hover{border-color:var(--green);background:#f5faf7}
+  .opt.sel{border-color:var(--green);background:var(--green-soft);font-weight:600}
   .likert{display:flex;gap:6px;justify-content:space-between;margin-top:6px}
-  .likert button{flex:1;padding:12px 0;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer;font-family:inherit;font-size:15px;font-weight:600;color:var(--muted)}
-  .likert button.sel{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .likert button{flex:1;padding:12px 0;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer;font-family:inherit;font-size:15px;font-weight:600;color:var(--muted);transition:.12s}
+  .likert button:hover{border-color:var(--green-line)}
+  .likert button.sel{background:var(--green);color:#fff;border-color:var(--green)}
   .likert-lab{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:4px}
   .file{border:2px dashed var(--line);border-radius:12px;padding:24px;text-align:center;cursor:pointer;color:var(--muted)}
   .file.has{border-color:var(--ok);color:var(--ok);border-style:solid}
   .nav{display:flex;gap:10px;margin-top:20px}
-  .btn{flex:1;padding:14px;border:none;border-radius:10px;font-family:inherit;font-size:16px;font-weight:600;cursor:pointer}
-  .btn.primary{background:var(--navy);color:#fff}
-  .btn.primary:disabled{background:#9aa6bf;cursor:not-allowed}
-  .btn.ghost{background:#fff;border:1px solid var(--line);color:var(--navy)}
+  .btn{flex:1;padding:14px;border:none;border-radius:11px;font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;transition:.15s}
+  .btn.primary{background:var(--green);color:#fff}
+  .btn.primary:hover{background:var(--green-dark)}
+  .btn.primary:disabled{opacity:.55;cursor:not-allowed}
+  .btn.ghost{background:#fff;border:1px solid var(--line);color:var(--green-dark)}
+  .btn.ghost:hover{background:#f5faf7}
   .msg{padding:12px 14px;border-radius:10px;font-size:14px;margin-top:12px}
   .msg.err{background:#FCEBEB;color:var(--err)}
   .done{text-align:center;padding:20px 0}
-  .done .ic{width:64px;height:64px;border-radius:50%;background:#E9F5EF;color:var(--ok);display:grid;place-items:center;font-size:34px;margin:0 auto 16px}
+  .done .ic{width:64px;height:64px;border-radius:50%;background:var(--green-soft);color:var(--ok);display:grid;place-items:center;font-size:34px;margin:0 auto 16px}
   .accent{height:4px;background:var(--gold);border-radius:99px;width:56px;margin:0 auto 16px}
   .center{text-align:center}
   .spin{display:inline-block;width:18px;height:18px;border:3px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-3px;margin-right:6px}
