@@ -110,7 +110,7 @@
     </div>
   </main>
 
-  <footer>ฝ่ายทรัพยากรบุคคล — ระบบเช็คชื่อ · เอกสารภายใน · <b>หน้ากล้อง v2</b></footer>
+  <footer>ฝ่ายทรัพยากรบุคคล — ระบบเช็คชื่อ · เอกสารภายใน · <b>หน้ากล้อง v3</b></footer>
 
   <!-- แผงสถานะ -->
   <div class="panel" id="pLoading"><div class="spin"></div><h2>กำลังบันทึก…</h2><p>ส่งรูปเข้าระบบเช็คชื่อ</p></div>
@@ -118,6 +118,11 @@
   <div class="panel" id="pError">
     <div class="big">⚠️</div><h2>ไม่สำเร็จ</h2><p id="errMsg"></p>
     <div class="row" style="max-width:300px"><button class="btn btn-gold" id="btnRetry">ลองอีกครั้ง</button></div>
+  </div>
+  <div class="panel" id="pBlock">
+    <div class="big">📵</div><h2>เปิดจากมือถือเท่านั้น</h2>
+    <p id="blockMsg">หน้านี้ไม่ได้รับข้อมูลยืนยันตัวตนจาก Telegram<br><br>
+    กรุณาเปิดแอป <b>Telegram บนมือถือ</b> → กด 🟢 เช็คอิน → 📍 ส่งตำแหน่ง → แล้วกดปุ่ม 📸 ที่บอทส่งให้</p>
   </div>
 
 <script>
@@ -131,7 +136,7 @@ const $ = (id) => document.getElementById(id);
 const video = $('cam'), canvas = $('shot');
 let stream = null, photoB64 = null;
 
-function showPanel(id){ ['pLoading','pDone','pError'].forEach(p=>$(p).classList.toggle('show', p===id)); }
+function showPanel(id){ ['pLoading','pDone','pError','pBlock'].forEach(p=>$(p).classList.toggle('show', p===id)); }
 function hidePanels(){ showPanel(''); }
 
 function fail(msg){ $('errMsg').textContent = msg; showPanel('pError'); }
@@ -181,6 +186,7 @@ function capture(){
 
 async function send(){
   if(!photoB64) return;
+  if(!tg || !tg.initData){ stopCamera(); return showPanel('pBlock'); } // กันหลุดชั้นสอง
   showPanel('pLoading');
   try{
     const res = await fetch(UPLOAD_URL,{
@@ -217,7 +223,7 @@ window.addEventListener('pagehide', stopCamera);
 
 /* ---- เริ่มทำงาน ---- */
 if(!tg || !tg.initData){
-  fail('หน้านี้ต้องเปิดผ่านปุ่ม "📸 เปิดกล้องถ่ายรูป" ในบอทเท่านั้น');
+  showPanel('pBlock'); // บล็อกถาวร — ไม่มีปุ่มให้ไปต่อ
 }else{
   tg.ready(); tg.expand();
   try{ tg.setHeaderColor('#1B2D51'); tg.setBackgroundColor('#101E3A'); }catch(e){}
