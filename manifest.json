@@ -1,0 +1,12 @@
+{
+  "name": "MASARU เช็คชื่อ",
+  "short_name": "MASARU เช็คชื่อ",
+  "start_url": "./launch.html",
+  "display": "standalone",
+  "background_color": "#101E3A",
+  "theme_color": "#1B2D51",
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
