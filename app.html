@@ -162,7 +162,7 @@
     </section>
   </main>
 
-  <footer>ฝ่ายทรัพยากรบุคคล — MASARU Group · แอพเช็คชื่อ v1</footer>
+  <footer>ฝ่ายทรัพยากรบุคคล — MASARU Group · แอพเช็คชื่อ v1.1</footer>
 
   <nav>
     <button class="on" id="nav0" onclick="go(0)"><span class="ic">🏠</span>หน้าหลัก</button>
@@ -209,12 +209,19 @@ function showPanel(id){['pLoading','pDone','pError','pReason','pBlock'].forEach(
 function loading(t,m){$('loadTitle').textContent=t||'กำลังทำงาน…';$('loadMsg').textContent=m||'';showPanel('pLoading');}
 function fail(m){$('errMsg').textContent=m;showPanel('pError');}
 
-async function api(body){
-  const res = await fetch(UPLOAD_URL,{method:'POST',headers:{'content-type':'application/json'},
-    body:JSON.stringify(Object.assign({init_data:tg.initData},body))});
-  const raw = await res.text();
-  try{ return JSON.parse(raw); }
-  catch(e){ return {ok:false,error:'ระบบตอบกลับผิดรูปแบบ [HTTP '+res.status+'] → "'+raw.substring(0,80)+'"'}; }
+async function api(body, timeoutMs){
+  const ctl = new AbortController();
+  const tid = setTimeout(()=>ctl.abort(), timeoutMs||45000);
+  try{
+    const res = await fetch(UPLOAD_URL,{method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify(Object.assign({init_data:tg.initData},body)), signal:ctl.signal});
+    const raw = await res.text();
+    try{ return JSON.parse(raw); }
+    catch(e){ return {ok:false,timeout:true,error:'ระบบตอบกลับผิดรูปแบบ [HTTP '+res.status+'] → "'+raw.substring(0,80)+'"'}; }
+  }catch(e){
+    // เน็ตหลุด / หมดเวลา — ไม่ให้จอหมุนค้าง
+    return {ok:false, timeout:true, error: e.name==='AbortError' ? 'ใช้เวลานานเกินไป' : 'เชื่อมต่อไม่ได้ ('+e.message+')'};
+  }finally{ clearTimeout(tid); }
 }
 
 /* ================= หน้าหลัก ================= */
@@ -308,6 +315,22 @@ async function submitCheck(extraReason){
   }else if(r.need_reason){
     $('reasonInfo').textContent='ห่างจาก '+r.office+' '+r.distance.toLocaleString()+' ม. (อนุญาต '+r.radius+' ม.)\nหากปฏิบัติงานนอกสถานที่ กรุณาระบุเหตุผลเพื่อขอ HR อนุมัติ';
     showPanel('pReason');
+  }else if(r.timeout){
+    // ตอบกลับไม่ถึง แต่ระบบอาจบันทึกไปแล้ว → ตรวจสอบซ้ำก่อนแจ้งว่าไม่สำเร็จ
+    loading('กำลังตรวจสอบผล…','ระบบตอบกลับช้า ขอตรวจสอบอีกครั้ง');
+    await new Promise(r2=>setTimeout(r2,2500));
+    const st = await api({action:'status'}, 20000);
+    const done = st.ok && st.registered && (curAction==='checkin' ? st.checkIn : st.checkOut);
+    if(done){
+      const d = curAction==='checkin' ? st.checkIn : st.checkOut;
+      $('doneIcon').textContent = curAction==='checkin'?'🟢':'🔴';
+      $('doneTitle').textContent='บันทึกสำเร็จ — '+d.time+' น.';
+      $('doneMsg').textContent=(d.status||'บันทึกแล้ว')+(d.lateMin?' '+d.lateMin+' นาที':'')+'\n(ระบบตอบกลับช้า แต่ข้อมูลเข้าเรียบร้อย)';
+      showPanel('pDone');
+      try{tg.HapticFeedback.notificationOccurred('success');}catch(e){}
+    }else{
+      fail('บันทึกไม่สำเร็จ: '+(r.error||'')+'\nกรุณาตรวจสอบในแชทบอทก่อนกดใหม่');
+    }
   }else fail(r.error||'บันทึกไม่สำเร็จ');
 }
 function resendWithReason(){
