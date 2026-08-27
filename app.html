@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+<title>MASARU Check-in</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#1B2D51; --navy2:#101E3A; --card:#22375F; --line:rgba(201,168,76,.28);
+    --gold:#C9A84C; --gold-soft:#E8D9A8; --ok:#2FBF71; --warn:#E8B93E; --bad:#E5484D;
+    --ink:#F4F6FB; --dim:#9FACC7;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    font-family:'Sarabun',sans-serif;color:var(--ink);
+    background:radial-gradient(120% 90% at 50% 0%, #24406F 0%, var(--navy) 45%, var(--navy2) 100%);
+    display:flex;flex-direction:column;min-height:100dvh;
+  }
+  header{padding:16px 18px 10px;display:flex;align-items:center;justify-content:space-between}
+  .brand{font-size:11px;letter-spacing:.28em;color:var(--gold);font-weight:700}
+  header h1{font-size:19px;font-weight:700}
+  .dateLine{font-size:12px;color:var(--dim)}
+
+  main{flex:1;overflow-y:auto;padding:4px 16px 90px}
+  .screen{display:none}
+  .screen.on{display:block}
+
+  .card{
+    background:linear-gradient(180deg,var(--card),#1C2E52);
+    border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  .who{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .who .nm{font-size:17px;font-weight:700}
+  .who .cd{font-size:12.5px;color:var(--dim)}
+  .chip{font-size:12px;padding:5px 12px;border-radius:999px;background:rgba(201,168,76,.14);color:var(--gold-soft);border:1px solid var(--line);white-space:nowrap}
+
+  .todayRow{display:flex;gap:10px;margin-top:12px}
+  .slot{flex:1;background:rgba(16,30,58,.55);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:10px 12px}
+  .slot .lb{font-size:11.5px;color:var(--dim)}
+  .slot .vl{font-size:18px;font-weight:700;margin-top:2px}
+  .slot .st{font-size:11.5px;margin-top:2px}
+  .st.ok{color:var(--ok)} .st.warn{color:var(--warn)} .st.dim{color:var(--dim)}
+
+  .bigBtn{
+    width:100%;padding:17px 0;border:none;border-radius:16px;cursor:pointer;
+    font-family:inherit;font-size:18px;font-weight:700;margin-bottom:12px;
+    box-shadow:0 10px 24px rgba(0,0,0,.35);transition:transform .1s;
+  }
+  .bigBtn:active{transform:scale(.98)}
+  .bigBtn:disabled{opacity:.4}
+  .b-in{background:linear-gradient(135deg,#35C77B,#1F9D5C);color:#08210F}
+  .b-out{background:linear-gradient(135deg,#F0716F,#CC3B44);color:#2A0507}
+  .b-gold{background:linear-gradient(135deg,var(--gold),#B08F35);color:#20242E}
+  .b-line{background:transparent;color:var(--gold-soft);border:1.5px solid var(--line)}
+
+  label{font-size:13px;color:var(--dim);display:block;margin:10px 0 5px}
+  select,input,textarea{
+    width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);
+    background:rgba(16,30,58,.6);color:var(--ink);font-family:inherit;font-size:15px;
+  }
+  textarea{min-height:84px;resize:vertical}
+  input[type=date]{color-scheme:dark}
+
+  .hrow{display:flex;justify-content:space-between;align-items:center;padding:11px 4px;border-bottom:1px dashed rgba(255,255,255,.09);font-size:14px}
+  .hrow .t{color:var(--dim);font-size:12px}
+
+  /* bottom nav */
+  nav{
+    position:fixed;left:0;right:0;bottom:0;display:flex;
+    background:rgba(13,23,45,.96);backdrop-filter:blur(8px);
+    border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom));
+  }
+  nav button{
+    flex:1;background:none;border:none;color:var(--dim);font-family:inherit;
+    font-size:11.5px;padding:7px 0;cursor:pointer;border-radius:12px;
+  }
+  nav button .ic{display:block;font-size:20px;margin-bottom:2px}
+  nav button.on{color:var(--gold);background:rgba(201,168,76,.1)}
+
+  /* camera overlay */
+  #camWrap{position:fixed;inset:0;background:var(--navy2);z-index:20;display:none;flex-direction:column;align-items:center;padding:18px 16px}
+  #camWrap.on{display:flex}
+  .frame{position:relative;width:min(80vw,330px);aspect-ratio:3/4;border-radius:20px;overflow:hidden;background:#000;
+    box-shadow:0 16px 44px rgba(0,0,0,.55),0 0 0 1px var(--line);margin-top:6px}
+  video,canvas#shot{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+  .shutter{width:72px;height:72px;border-radius:50%;border:none;cursor:pointer;margin-top:16px;
+    background:radial-gradient(circle at 35% 30%,#fff,#dfe5f0 70%);
+    box-shadow:0 0 0 5px var(--navy2),0 0 0 8px var(--gold),0 10px 24px rgba(0,0,0,.45)}
+  .shutter:disabled{opacity:.4}
+  .row{display:flex;gap:10px;width:min(80vw,330px);margin-top:14px}
+  .row .bigBtn{margin:0;padding:13px 0;font-size:15.5px}
+  .camHint{font-size:13px;color:var(--dim);margin-top:10px;min-height:18px;text-align:center}
+
+  /* panels */
+  .panel{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+    background:rgba(16,30,58,.97);padding:28px;text-align:center;z-index:30}
+  .panel.show{display:flex}
+  .big{font-size:54px;line-height:1}
+  .panel h2{font-size:19px}
+  .panel p{font-size:14px;color:var(--dim);max-width:290px;white-space:pre-line}
+  .spin{width:44px;height:44px;border-radius:50%;border:4px solid rgba(201,168,76,.25);border-top-color:var(--gold);animation:sp 1s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .panel .bigBtn{width:min(70vw,260px)}
+  @media (prefers-reduced-motion:reduce){.spin{animation:none}}
+  footer{position:fixed;bottom:64px;left:0;right:0;text-align:center;font-size:10px;color:#5D6C8C;pointer-events:none}
+</style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="brand">MASARU GROUP</div>
+      <h1>ระบบเช็คชื่อ</h1>
+    </div>
+    <div class="dateLine" id="dateLine"></div>
+  </header>
+
+  <main>
+    <!-- ===== หน้าหลัก ===== -->
+    <section class="screen on" id="scrHome">
+      <div class="card">
+        <div class="who">
+          <div><div class="nm" id="empName">…</div><div class="cd" id="empMeta">กำลังโหลด…</div></div>
+          <div class="chip" id="shiftChip">–</div>
+        </div>
+        <div class="todayRow">
+          <div class="slot"><div class="lb">🟢 เข้างาน</div><div class="vl" id="inTime">–</div><div class="st dim" id="inStatus"></div></div>
+          <div class="slot"><div class="lb">🔴 เลิกงาน</div><div class="vl" id="outTime">–</div><div class="st dim" id="outStatus"></div></div>
+        </div>
+      </div>
+      <button class="bigBtn b-in" id="btnIn" onclick="beginCheck('checkin')">🟢 เช็คอินเข้างาน</button>
+      <button class="bigBtn b-out" id="btnOut" onclick="beginCheck('checkout')">🔴 เช็คเอาท์เลิกงาน</button>
+      <button class="bigBtn b-line" id="btnHome" onclick="addToHome()" style="display:none">📲 เพิ่มลงหน้าจอโฮม</button>
+    </section>
+
+    <!-- ===== แจ้งลา ===== -->
+    <section class="screen" id="scrLeave">
+      <div class="card">
+        <h2 style="font-size:17px;margin-bottom:4px">🌴 แจ้งลา</h2>
+        <label>ประเภทการลา</label>
+        <select id="lvType"></select>
+        <label>ตั้งแต่วันที่</label>
+        <input type="date" id="lvFrom">
+        <label>ถึงวันที่</label>
+        <input type="date" id="lvTo">
+        <label>เหตุผล</label>
+        <textarea id="lvReason" placeholder="เช่น ป่วยเป็นไข้หวัด / ทำธุระราชการ"></textarea>
+        <button class="bigBtn b-gold" style="margin-top:14px" onclick="sendLeave()">ส่งใบลา</button>
+        <div class="camHint">ใบลาจะถูกส่งให้ HR อนุมัติในกลุ่ม</div>
+      </div>
+    </section>
+
+    <!-- ===== ประวัติ ===== -->
+    <section class="screen" id="scrHist">
+      <div class="card">
+        <h2 style="font-size:17px;margin-bottom:6px">📋 ประวัติ 7 วันล่าสุด</h2>
+        <div id="histList"><div class="camHint">กำลังโหลด…</div></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>ฝ่ายทรัพยากรบุคคล — MASARU Group · แอพเช็คชื่อ v1</footer>
+
+  <nav>
+    <button class="on" id="nav0" onclick="go(0)"><span class="ic">🏠</span>หน้าหลัก</button>
+    <button id="nav1" onclick="go(1)"><span class="ic">🌴</span>แจ้งลา</button>
+    <button id="nav2" onclick="go(2)"><span class="ic">📋</span>ประวัติ</button>
+  </nav>
+
+  <!-- ===== กล้อง ===== -->
+  <div id="camWrap">
+    <div class="brand" style="margin-top:4px">ถ่ายรูปยืนยันตัวตน</div>
+    <div class="frame"><video id="cam" autoplay playsinline muted></video><canvas id="shot" style="display:none"></canvas></div>
+    <div class="camHint" id="camHint">กำลังเปิดกล้อง…</div>
+    <button class="shutter" id="btnShoot" onclick="capture()" disabled aria-label="ถ่ายรูป"></button>
+    <div class="row" id="previewBtns" style="display:none">
+      <button class="bigBtn b-line" onclick="retake()">↺ ถ่ายใหม่</button>
+      <button class="bigBtn b-gold" onclick="submitCheck()">✓ ใช้รูปนี้</button>
+    </div>
+    <div class="row"><button class="bigBtn b-line" onclick="closeCam()">ยกเลิก</button></div>
+  </div>
+
+  <!-- ===== แผงสถานะ ===== -->
+  <div class="panel" id="pLoading"><div class="spin"></div><h2 id="loadTitle">กำลังทำงาน…</h2><p id="loadMsg"></p></div>
+  <div class="panel" id="pDone"><div class="big" id="doneIcon">✅</div><h2 id="doneTitle"></h2><p id="doneMsg"></p>
+    <button class="bigBtn b-gold" onclick="showPanel('');refreshStatus()">ตกลง</button></div>
+  <div class="panel" id="pError"><div class="big">⚠️</div><h2>ไม่สำเร็จ</h2><p id="errMsg"></p>
+    <button class="bigBtn b-gold" onclick="showPanel('')">ปิด</button></div>
+  <div class="panel" id="pReason"><div class="big">📍</div><h2>อยู่นอกพื้นที่</h2><p id="reasonInfo"></p>
+    <textarea id="outReason" placeholder="พิมพ์เหตุผล เช่น ออกส่งของให้ลูกค้า" style="max-width:300px"></textarea>
+    <button class="bigBtn b-gold" onclick="resendWithReason()">ส่งพร้อมเหตุผล</button>
+    <button class="bigBtn b-line" onclick="showPanel('')">ยกเลิก</button></div>
+  <div class="panel" id="pBlock"><div class="big">📵</div><h2>เปิดจากมือถือเท่านั้น</h2>
+    <p>กรุณาเปิดผ่านปุ่มเมนูของบอท <b>@masaru_hr_bot</b>\nบนแอป Telegram มือถือ</p></div>
+
+<script>
+/* ================= ตั้งค่า ================= */
+const UPLOAD_URL = 'https://iyycyvnvfmerxkcfalea.supabase.co/functions/v1/super-task';
+/* =========================================== */
+
+const tg = window.Telegram ? window.Telegram.WebApp : null;
+const $ = (id)=>document.getElementById(id);
+let stream=null, photoB64=null, curAction=null, curPos=null, statusData=null;
+
+function showPanel(id){['pLoading','pDone','pError','pReason','pBlock'].forEach(p=>$(p).classList.toggle('show',p===id));}
+function loading(t,m){$('loadTitle').textContent=t||'กำลังทำงาน…';$('loadMsg').textContent=m||'';showPanel('pLoading');}
+function fail(m){$('errMsg').textContent=m;showPanel('pError');}
+
+async function api(body){
+  const res = await fetch(UPLOAD_URL,{method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify(Object.assign({init_data:tg.initData},body))});
+  const raw = await res.text();
+  try{ return JSON.parse(raw); }
+  catch(e){ return {ok:false,error:'ระบบตอบกลับผิดรูปแบบ [HTTP '+res.status+'] → "'+raw.substring(0,80)+'"'}; }
+}
+
+/* ================= หน้าหลัก ================= */
+async function refreshStatus(){
+  const r = await api({action:'status'});
+  if(!r.ok) return fail(r.error||'โหลดสถานะไม่สำเร็จ');
+  statusData = r;
+  if(!r.registered){
+    $('empName').textContent='ยังไม่ได้ลงทะเบียน';
+    $('empMeta').textContent='กรุณาพิมพ์ /start ในแชทบอทก่อน';
+    $('btnIn').disabled=$('btnOut').disabled=true;
+    return;
+  }
+  $('dateLine').textContent = r.dateThai||'';
+  $('empName').textContent = r.name;
+  $('empMeta').textContent = r.code+' · '+r.dept;
+  $('shiftChip').textContent = '🕐 '+r.shiftName;
+
+  $('inTime').textContent = r.checkIn ? r.checkIn.time+' น.' : '–';
+  const is=$('inStatus');
+  if(r.checkIn){ is.textContent=r.checkIn.status+(r.checkIn.lateMin?' '+r.checkIn.lateMin+' นาที':'');
+    is.className='st '+(r.checkIn.status==='มาสาย'?'warn':'ok'); }
+  else{ is.textContent='ยังไม่เช็คอิน'; is.className='st dim'; }
+
+  $('outTime').textContent = r.checkOut ? r.checkOut.time+' น.' : '–';
+  $('outStatus').textContent = r.checkOut ? 'บันทึกแล้ว' : 'ยังไม่เช็คเอาท์';
+  $('outStatus').className = 'st '+(r.checkOut?'ok':'dim');
+
+  $('btnIn').disabled = !!r.checkIn;
+  $('btnOut').disabled = !r.checkIn || !!r.checkOut;
+
+  const sel=$('lvType');
+  if(sel.options.length===0 && r.leaveTypes){
+    r.leaveTypes.forEach(t=>{const o=document.createElement('option');o.textContent=t;sel.appendChild(o);});
+  }
+}
+
+/* ================= เช็คอิน/เอาท์ ================= */
+function beginCheck(action){
+  curAction=action; photoB64=null;
+  loading('กำลังหาตำแหน่ง…','กรุณาเปิด GPS และรอสักครู่');
+  if(!navigator.geolocation) return fail('เครื่องนี้ไม่รองรับ GPS');
+  navigator.geolocation.getCurrentPosition(
+    (p)=>{ curPos={lat:p.coords.latitude,lng:p.coords.longitude,accuracy:Math.round(p.coords.accuracy||0)};
+           showPanel(''); openCam(); },
+    (e)=>{ fail(e.code===1?'ไม่ได้รับอนุญาตใช้ตำแหน่ง — เปิดสิทธิ์ Location ให้ Telegram ในตั้งค่าเครื่อง'
+                          :'หาตำแหน่งไม่สำเร็จ ('+e.message+') ลองใหม่ในที่โล่ง'); },
+    {enableHighAccuracy:true,timeout:15000,maximumAge:0});
+}
+
+async function openCam(){
+  $('camWrap').classList.add('on');
+  $('previewBtns').style.display='none';
+  $('shot').style.display='none';$('cam').style.display='block';
+  $('btnShoot').style.display='block';$('btnShoot').disabled=true;
+  $('camHint').textContent='กำลังเปิดกล้อง…';
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:960},height:{ideal:1280}},audio:false});
+    $('cam').srcObject=stream; await $('cam').play();
+    $('btnShoot').disabled=false;
+    $('camHint').textContent='พิกัดพร้อม (±'+curPos.accuracy+' ม.) — จัดหน้าในกรอบแล้วถ่าย';
+  }catch(e){ closeCam(); fail('เปิดกล้องไม่ได้ — อนุญาตการใช้กล้องให้ Telegram ในตั้งค่าเครื่องแล้วลองใหม่'); }
+}
+function stopCam(){ if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;} }
+function closeCam(){ stopCam(); $('camWrap').classList.remove('on'); }
+function capture(){
+  const v=$('cam'),c=$('shot');
+  const MAX=800,sc=Math.min(1,MAX/Math.max(v.videoWidth,v.videoHeight));
+  c.width=Math.round(v.videoWidth*sc);c.height=Math.round(v.videoHeight*sc);
+  c.getContext('2d').drawImage(v,0,0,c.width,c.height);
+  photoB64=c.toDataURL('image/jpeg',0.82).split(',')[1];
+  stopCam(); v.style.display='none';c.style.display='block';
+  $('btnShoot').style.display='none';$('previewBtns').style.display='flex';
+  $('camHint').textContent='ตรวจสอบรูป — ชัดเจนแล้วกด "ใช้รูปนี้"';
+}
+function retake(){ photoB64=null; openCam(); }
+
+async function submitCheck(extraReason){
+  closeCam();
+  loading('กำลังบันทึก…','ตรวจพิกัด + บันทึกรูป');
+  const r = await api({action:curAction,lat:curPos.lat,lng:curPos.lng,accuracy:curPos.accuracy,
+                       photo:photoB64,reason:extraReason||''});
+  if(r.ok){
+    const late=r.status==='มาสาย'?' '+r.lateMin+' นาที':'';
+    $('doneIcon').textContent = curAction==='checkin'?'🟢':'🔴';
+    $('doneTitle').textContent='บันทึกสำเร็จ — '+r.time+' น.';
+    $('doneMsg').textContent=r.status+late+'\n'+r.office+' (ห่าง '+r.distance+' ม.)'+
+      (r.outside?'\n⚠️ นอกพื้นที่ — รอ HR อนุมัติ':'');
+    showPanel('pDone');
+    try{tg.HapticFeedback.notificationOccurred('success');}catch(e){}
+  }else if(r.need_reason){
+    $('reasonInfo').textContent='ห่างจาก '+r.office+' '+r.distance.toLocaleString()+' ม. (อนุญาต '+r.radius+' ม.)\nหากปฏิบัติงานนอกสถานที่ กรุณาระบุเหตุผลเพื่อขอ HR อนุมัติ';
+    showPanel('pReason');
+  }else fail(r.error||'บันทึกไม่สำเร็จ');
+}
+function resendWithReason(){
+  const rs=$('outReason').value.trim();
+  if(rs.length<5) return alert('กรุณาระบุเหตุผลอย่างน้อย 5 ตัวอักษร');
+  submitCheck(rs);
+}
+
+/* ================= แจ้งลา ================= */
+async function sendLeave(){
+  const from=$('lvFrom').value, to=$('lvTo').value||from, rs=$('lvReason').value.trim();
+  if(!from) return fail('กรุณาเลือกวันที่เริ่มลา');
+  if(rs.length<3) return fail('กรุณาระบุเหตุผล');
+  loading('กำลังส่งใบลา…');
+  const r=await api({action:'leave',leave_type:$('lvType').value,from:from,to:to,reason:rs});
+  if(r.ok){
+    $('doneIcon').textContent='🌴';
+    $('doneTitle').textContent='ส่งใบลาแล้ว';
+    $('doneMsg').textContent=r.from+' – '+r.to+' ('+r.days+' วัน)\n⏳ รอ HR อนุมัติ — ผลจะแจ้งในแชทบอท';
+    showPanel('pDone');
+    $('lvReason').value='';
+  }else fail(r.error||'ส่งใบลาไม่สำเร็จ');
+}
+
+/* ================= ประวัติ ================= */
+async function loadHist(){
+  $('histList').innerHTML='<div class="camHint">กำลังโหลด…</div>';
+  const r=await api({action:'history'});
+  if(!r.ok) return $('histList').innerHTML='<div class="camHint">'+(r.error||'โหลดไม่สำเร็จ')+'</div>';
+  if(!r.rows.length) return $('histList').innerHTML='<div class="camHint">ยังไม่มีประวัติ</div>';
+  $('histList').innerHTML=r.rows.map(x=>
+    '<div class="hrow"><div>'+(x.type==='เข้างาน'?'🟢':'🔴')+' '+x.type+' · <b>'+x.status+'</b>'+
+    (x.lateMin?' <span style="color:var(--warn)">'+x.lateMin+" นาที</span>":'')+
+    '</div><div class="t">'+x.date+' '+x.time+'</div></div>').join('');
+}
+
+/* ================= นำทาง ================= */
+function go(i){
+  ['scrHome','scrLeave','scrHist'].forEach((s,k)=>$(s).classList.toggle('on',k===i));
+  [0,1,2].forEach(k=>$('nav'+k).classList.toggle('on',k===i));
+  if(i===2) loadHist();
+}
+
+/* ================= เพิ่มลงหน้าจอโฮม ================= */
+function addToHome(){ try{ tg.addToHomeScreen(); }catch(e){ fail('Telegram เวอร์ชันนี้ยังไม่รองรับ — ใช้วิธีเบราว์เซอร์: เปิด t.me/masaru_hr_bot แล้ว Add to Home Screen'); } }
+
+/* ================= เริ่มทำงาน ================= */
+window.addEventListener('pagehide', stopCam);
+if(!tg || !tg.initData){
+  showPanel('pBlock');
+}else{
+  tg.ready(); tg.expand();
+  try{ tg.setHeaderColor('#1B2D51'); tg.setBackgroundColor('#101E3A'); }catch(e){}
+  try{ if(typeof tg.addToHomeScreen==='function') $('btnHome').style.display='block'; }catch(e){}
+  const t=new Date(); $('lvFrom').value=$('lvTo').value=t.toISOString().slice(0,10);
+  refreshStatus();
+}
+</script>
+</body>
+</html>
